@@ -44,7 +44,7 @@ This project implements a **Natural Language Processing (NLP)** pipeline to auto
 This project uses **Poetry** for dependency management to ensure reproducibility.
 
 ### Prerequisites
-*   Python 3.9 or higher
+*   Python 3.10 and below 3.15
 *   Poetry installed (`pip install poetry`)
 
 ### Step-by-step
