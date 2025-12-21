@@ -30,12 +30,13 @@ This project implements a **Natural Language Processing (NLP)** pipeline to auto
 
 | Component | Technology | Description |
 | :--- | :--- | :--- |
-| **Language** | ![Python](https://img.shields.io/badge/-Python-black?logo=python) | Core programming language |
-| **NLP Model** | HuggingFace Transformers | PhoBERT (VinAI) |
-| **Backend** | FastAPI | RESTful API Service |
-| **Frontend** | Streamlit | Data Visualization Dashboard |
-| **Package Manager** | Poetry | Dependency & Environment Management |
-| **Data Handling** | Pandas / NumPy | Data manipulation |
+| **Language** | ![Python](https://img.shields.io/badge/Python-000000?logo=python&logoColor=white) | Core programming language |
+| **NLP Model** | ![HuggingFace](https://img.shields.io/badge/HuggingFace-000000?logo=huggingface&logoColor=yellow) | PhoBERT (VinAI) |
+| **Backend** | ![FastAPI](https://img.shields.io/badge/FastAPI-000000?logo=fastapi&logoColor=white) | RESTful API Service |
+| **Frontend** | ![Streamlit](https://img.shields.io/badge/Streamlit-000000?logo=streamlit&logoColor=FF4B4B) | Data Visualization Dashboard |
+| **Package Manager** | ![Poetry](https://img.shields.io/badge/Poetry-000000?logo=poetry&logoColor=60A5FA) | Dependency & Environment Management |
+| **Data Handling** | ![Pandas](https://img.shields.io/badge/Pandas-000000?logo=pandas&logoColor=white) / ![NumPy](https://img.shields.io/badge/NumPy-000000?logo=numpy&logoColor=white) | Data manipulation |
+
 
 ---
 
