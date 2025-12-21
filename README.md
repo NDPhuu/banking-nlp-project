@@ -52,7 +52,7 @@ This project uses **Poetry** for dependency management to ensure reproducibility
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/your-username/banking-nlp-project.git
+    git clone https://github.com/NDPhuu/banking-nlp-project.git
     cd banking-nlp-project
     ```
 2.  **Set up .venv inside the folder**
