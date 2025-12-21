@@ -55,20 +55,20 @@ This project uses **Poetry** for dependency management to ensure reproducibility
     git clone https://github.com/your-username/banking-nlp-project.git
     cd banking-nlp-project
     ```
-
-2.  **Install dependencies**
+2.  **Set up .venv inside the folder**
+    ```bash
+    poetry config virtualenvs.in-project true
+    ```
+3.  **Install dependencies**
     ```bash
     poetry install
     ```
     *This command will create a virtual environment and install all required libraries (Torch, Transformers, FastAPI, etc.) automatically.*
 
-3.  **Activate the environment**
-    ```bash
-    poetry shell
-    ```
+
 
 ---
 
 ## 🏃‍♂️ Usage
 
-*To be continued.*
+*To be conttinued.*
