@@ -1,114 +1,193 @@
-import streamlit as st
-import pandas as pd
 import time
-from src.analyzer import BankingAnalyzer
-from src.dashboard import render_dashboard
+import pandas as pd
+import streamlit as st
 
-# --- CẤU HÌNH TRANG ---
-st.set_page_config(
-    page_title="Banking Social Listening",
-    page_icon="🏦",
-    layout="wide"
+from src.dashboard import render_dashboard
+from src.analyzer import BankingAnalyzer
+
+st.set_page_config(page_title="Banking NLP Dashboard", layout="wide")
+
+# =========================
+# THEME / CSS
+# =========================
+st.markdown(
+    """
+    <style>
+    /* ====== App background: dark glow gradient ====== */
+    .stApp {
+        background:
+            radial-gradient(900px 520px at 18% 24%, rgba(168, 85, 247, 0.22), transparent 60%),
+            radial-gradient(900px 520px at 75% 35%, rgba(34, 197, 94, 0.18), transparent 62%),
+            radial-gradient(1100px 720px at 55% 82%, rgba(59, 130, 246, 0.22), transparent 62%),
+            linear-gradient(180deg, #05060a 0%, #070914 55%, #05060a 100%);
+        color: #E5E7EB;
+    }
+
+    /* font hệ thống */
+    html, body, [class*="css"] {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                     "Segoe UI", Roboto, Helvetica, Arial;
+        color: #E5E7EB;
+    }
+
+    /* ====== Title ====== */
+    h1 { letter-spacing: -0.6px; font-weight: 850; margin-bottom: 0.2rem; color: #F9FAFB; }
+    .subtitle { color: rgba(229,231,235,0.72); margin-top: -6px; }
+
+    /* ====== Tabs ====== */
+    button[role="tab"] {
+        font-weight: 750 !important;
+        padding: 10px 16px !important;
+        color: rgba(229,231,235,0.70) !important;
+        border-radius: 12px !important;
+    }
+    button[role="tab"][aria-selected="true"] {
+        color: #F9FAFB !important;
+        border: 1px solid rgba(239, 68, 68, 0.55) !important;
+        background: rgba(239, 68, 68, 0.12) !important;
+    }
+
+    /* ====== Buttons ====== */
+    .stButton > button {
+        border-radius: 14px !important;
+        padding: 12px 16px !important;
+        font-weight: 800 !important;
+        border: 1px solid rgba(239, 68, 68, 0.45) !important;
+        background: rgba(0,0,0,0.20) !important;
+        color: #F9FAFB !important;
+    }
+    .stButton > button:hover {
+        border-color: rgba(239, 68, 68, 0.85) !important;
+        background: rgba(239, 68, 68, 0.12) !important;
+    }
+
+    /* ====== Inputs ====== */
+    textarea {
+        border-radius: 16px !important;
+        border: 1px solid rgba(255,255,255,0.16) !important;
+        background: rgba(3, 6, 18, 0.55) !important;
+        color: #F9FAFB !important;
+    }
+    textarea::placeholder { color: rgba(249,250,251,0.55) !important; }
+
+    /* label text */
+    label, .stTextArea label, .stTextInput label {
+        color: rgba(229,231,235,0.85) !important;
+        font-weight: 650 !important;
+    }
+
+    /* ====== Cards ====== */
+    .soft-card {
+        background: rgba(3, 6, 18, 0.40);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 18px;
+        padding: 18px 18px 12px 18px;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+    }
+
+    /* ====== Dataframe container (giảm cảm giác nền trắng) ====== */
+    div[data-testid="stDataFrame"] {
+        background: rgba(3, 6, 18, 0.35);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 16px;
+        padding: 8px;
+    }
+
+    /* divider */
+    hr { border-color: rgba(255,255,255,0.10) !important; }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
-# --- CSS TÙY CHỈNH CHO ĐẸP ---
-st.markdown("""
-<style>
-    .main-header {font-size: 30px; font-weight: bold; color: #1E88E5;}
-    .metric-card {background-color: #f0f2f6; padding: 15px; border-radius: 10px; border-left: 5px solid #1E88E5;}
-</style>
-""", unsafe_allow_html=True)
-
-# --- LOAD MODEL (CACHE ĐỂ KHÔNG LOAD LẠI) ---
 @st.cache_resource
-def load_engine():
-    # Hiển thị spinner xoay xoay lúc đang load
-    with st.spinner("⏳ Đang khởi động (Load PhoBERT)... Vui lòng chờ khoảng 30s..."):
-        try:
-            analyzer = BankingAnalyzer()
-            return analyzer
-        except Exception as e:
-            st.error(f"❌ Lỗi load model: {e}")
-            return None
+def get_analyzer():
+    return BankingAnalyzer()
 
-# --- LOAD DỮ LIỆU CSV (CACHE) ---
-@st.cache_data
-def load_data():
-    try:
-        # Đọc file CSV (Giả sử file này đã được gán nhãn xong xuôi để vẽ chart)
-        # Nếu chưa có file labeled, bạn có thể dùng tạm file raw để test UI
-        df = pd.read_csv("data/raw_reviews.csv",encoding="utf-8-sig") 
-        return df
-    except FileNotFoundError:
-        return None
+# =========================
+# HEADER (NO LOGO)
+# =========================
+st.title("Phân tích đánh giá App Ngân hàng số")
+st.markdown('<div class="subtitle">Dashboard thống kê dữ liệu & kiểm thử mô hình NLP</div>', unsafe_allow_html=True)
+st.divider()
 
-# --- KHỞI TẠO ---
-analyzer = load_engine()
-df = load_data()
+tab1, tab2 = st.tabs(["Thống kê", "Kiểm thử câu văn"])
 
-# --- GIAO DIỆN CHÍNH ---
-st.markdown('<p class="main-header">🏦 HỆ THỐNG LẮNG NGHE & PHÂN TÍCH APP NGÂN HÀNG</p>', unsafe_allow_html=True)
-st.markdown("---")
-
-# TẠO TAB
-tab1, tab2, tab3 = st.tabs(["📊 Báo cáo Tổng quan", "🤖 Demo (Real-time)", "🕷️ Dữ liệu thô"])
-
-# === TAB 1: DASHBOARD ===
+# =========================
+# TAB 1: DASHBOARD
+# =========================
 with tab1:
-    if df is not None:
+    st.write("Dữ liệu đầu vào: file CSV đã gán nhãn")
+
+    df = None
+    try:
+        df = pd.read_csv("data/raw_reviews.csv")
+        st.success("Đã load dữ liệu từ data/raw_reviews.csv")
+    except Exception:
+        st.warning("Không tìm thấy file CSV. Vui lòng upload file.")
+        uploaded = st.file_uploader("Upload CSV đã gán nhãn", type=["csv"])
+        if uploaded is not None:
+            df = pd.read_csv(uploaded)
+
+    if df is None or df.empty:
+        st.info("Chưa có dữ liệu để hiển thị.")
+    else:
         render_dashboard(df)
-    else:
-        st.warning("⚠️ Chưa tìm thấy file dữ liệu 'data/raw_reviews.csv'. Hãy chạy scraper.py trước!")
 
-# === TAB 2: DEMO ===
+# =========================
+# TAB 2: TEST SENTENCE
+# =========================
 with tab2:
-    st.header("Kiểm thử Mô hình")
-    st.write("Nhập một câu đánh giá bất kỳ để xem mô hình phân tích Chủ đề và Cảm xúc.")
+    st.markdown("### Nhập một câu đánh giá để kiểm thử mô hình")
 
-    col_input, col_btn = st.columns([4, 1])
-    with col_input:
-        user_text = st.text_area("Nhập nội dung review:", height=100, placeholder="Ví dụ: App chuyển tiền nhanh nhưng giao diện hơi rối...")
-    with col_btn:
-        st.write("") # Spacer
+    colL, colR = st.columns([4, 1])
+
+    with colL:
+        text = st.text_area(
+            "Nội dung đánh giá",
+            placeholder="Ví dụ: App hay lỗi đăng nhập, không nhận OTP...",
+            height=140,
+            label_visibility="visible",
+        )
+
+    with colR:
         st.write("")
-        analyze_btn = st.button("🔍 Phân tích ngay", type="primary", use_container_width=True)
+        st.write("")
+        run_btn = st.button("PHÂN TÍCH", use_container_width=True)
 
-    if analyze_btn and user_text:
-        if analyzer:
-            start_time = time.time()
-            result = analyzer.predict(user_text)
-            end_time = time.time()
-
-            # Hiển thị kết quả
-            st.success(f"✅ Phân tích xong trong {end_time - start_time:.2f} giây!")
-            
-            st.caption(f"Text sau khi làm sạch: {result['text_clean']}")
-
-            # Hiển thị 2 cột kết quả
-            c1, c2 = st.columns(2)
-            
-            with c1:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.subheader("🎭 Cảm xúc")
-                st.markdown(f"**{result['sentiment_label']}**")
-                st.progress(result['sentiment_score'])
-                st.caption(f"Độ tin cậy: {result['sentiment_score']:.2%}")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with c2:
-                st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-                st.subheader("🏷️ Chủ đề")
-                st.markdown(f"**{result['topic_label']}**")
-                st.progress(result['topic_score'])
-                st.caption(f"Độ tin cậy: {result['topic_score']:.2%}")
-                st.markdown('</div>', unsafe_allow_html=True)
+    if run_btn:
+        if not text.strip():
+            st.warning("Vui lòng nhập nội dung.")
         else:
-            st.error("Model chưa được load thành công. Kiểm tra lại thư mục models/")
+            try:
+                t0 = time.perf_counter()
+                analyzer = get_analyzer()
 
-# === TAB 3: DỮ LIỆU ===
-with tab3:
-    st.subheader("Dữ liệu đánh giá thô")
-    if df is not None:
-        st.dataframe(df)
-    else:
-        st.info("Chưa có dữ liệu.")
+                with st.spinner("Đang phân tích..."):
+                    result = analyzer.analyze(text)
+
+                elapsed = time.perf_counter() - t0
+                st.success(f"Phân tích xong trong {elapsed:.2f} giây")
+                st.caption(f"Text sau khi làm sạch: {result.get('text_clean','')}")
+
+                left, right = st.columns(2)
+
+                with left:
+                    st.markdown('<div class="soft-card">', unsafe_allow_html=True)
+                    st.markdown("### Cảm xúc")
+                    st.write(result.get("sentiment", ""))
+                    st.progress(min(max(float(result.get("sentiment_score", 0.0)), 0.0), 1.0))
+                    st.caption(f"Độ tin cậy: {float(result.get('sentiment_score', 0.0))*100:.2f}%")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                with right:
+                    st.markdown('<div class="soft-card">', unsafe_allow_html=True)
+                    st.markdown("### Chủ đề")
+                    st.write(result.get("topic", ""))
+                    st.progress(min(max(float(result.get("topic_score", 0.0)), 0.0), 1.0))
+                    st.caption(f"Độ tin cậy: {float(result.get('topic_score', 0.0))*100:.2f}%")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error("Analyzer/Model đang lỗi khi chạy dự đoán.")
+                st.code(str(e))
