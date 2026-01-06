@@ -18,7 +18,7 @@ TOPIC_MAP = {
 # Remap từ label cũ (0..5) -> label mới (0..3)
 TOPIC_REMAP_OLD_TO_NEW = {
     0: 0,  # others -> others
-    1: 1,  # account_identity -> account_security (gộp về 1)
+    1: 1,  # account_identity -> account_security
     2: 2,  # transaction -> transaction_finance
     3: 3,  # performance -> app_experience
     4: 0,  # customer_service -> others
@@ -36,12 +36,17 @@ COLOR_SEQ = [
     "#FB7185",  # đỏ hồng
 ]
 
+# ====== Font sizes for charts (tùy chỉnh ở đây) ======
+X_TICK_SIZE = 15
+Y_TICK_SIZE = 14
+LEGEND_SIZE = 14
+TITLE_SIZE = 16
+
 
 def _inject_dashboard_css():
     st.markdown(
         """
         <style>
-        /* Section title */
         .dash-title {
             font-size: 1.6rem;
             font-weight: 800;
@@ -50,7 +55,6 @@ def _inject_dashboard_css():
             margin: 0.2rem 0 1rem 0;
         }
 
-        /* KPI cards */
         .kpi-wrap {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -77,7 +81,6 @@ def _inject_dashboard_css():
             line-height: 1;
         }
 
-        /* Dark table */
         .tbl-wrap {
             background: rgba(17, 24, 39, 0.55);
             border: 1px solid rgba(255,255,255,0.10);
@@ -110,7 +113,6 @@ def _inject_dashboard_css():
             background: rgba(255,255,255,0.04);
         }
 
-        /* Subsection headings */
         .section-h {
             font-size: 1.15rem;
             font-weight: 800;
@@ -125,9 +127,8 @@ def _inject_dashboard_css():
 
 
 def _to_dark_table(df: pd.DataFrame) -> str:
-    # Render dataframe as dark-themed HTML table
     html = df.to_html(index=False, escape=False)
-    html = html.replace("<table border=\"1\" class=\"dataframe\">", "<table class=\"dark-table\">")
+    html = html.replace('<table border="1" class="dataframe">', '<table class="dark-table">')
     return f'<div class="tbl-wrap">{html}</div>'
 
 
@@ -140,20 +141,20 @@ def _style_fig(fig):
         legend=dict(
             title="",
             bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#E5E7EB"),
+            font=dict(color="#E5E7EB", size=LEGEND_SIZE),
         ),
         xaxis=dict(
             showgrid=False,
             zeroline=False,
-            tickfont=dict(color="#E5E7EB"),
-            title_font=dict(color="#E5E7EB"),
+            tickfont=dict(color="#E5E7EB", size=X_TICK_SIZE),
+            title_font=dict(color="#E5E7EB", size=TITLE_SIZE),
         ),
         yaxis=dict(
             showgrid=True,
             gridcolor="rgba(255,255,255,0.08)",
             zeroline=False,
-            tickfont=dict(color="#E5E7EB"),
-            title_font=dict(color="#E5E7EB"),
+            tickfont=dict(color="#E5E7EB", size=Y_TICK_SIZE),
+            title_font=dict(color="#E5E7EB", size=TITLE_SIZE),
         ),
     )
     fig.update_traces(marker_line_width=0)
@@ -169,10 +170,17 @@ def render_dashboard(df: pd.DataFrame):
         st.warning("Chưa có dữ liệu để hiển thị.")
         return
 
-    # ===== KPI cards (chữ/số sáng, rõ) =====
+    # ===== KPI cards =====
     total_reviews = len(df)
     num_apps = df["app_name"].nunique() if "app_name" in df.columns else None
-    num_topics = df["label_topic"].nunique() if "label_topic" in df.columns else None
+
+    # Số chủ đề phải tính theo label đã remap (ra 4)
+    if "label_topic" in df.columns:
+        topic_series_remap = df["label_topic"].map(lambda x: TOPIC_REMAP_OLD_TO_NEW.get(x, x))
+        num_topics = topic_series_remap.nunique()
+    else:
+        topic_series_remap = None
+        num_topics = None
 
     st.markdown(
         f"""
@@ -205,15 +213,13 @@ def render_dashboard(df: pd.DataFrame):
         sentiment_counts = df["label_sentiment"].value_counts().sort_index()
         sentiment_df = pd.DataFrame(
             {
-                "Cảm xúc": [SENTIMENT_MAP.get(i, str(i)) for i in sentiment_counts.index],
+                "Cảm xúc": [SENTIMENT_MAP.get(int(i), str(i)) for i in sentiment_counts.index],
                 "Số lượng": sentiment_counts.values,
             }
         )
 
-        # Table (dark)
         st.markdown(_to_dark_table(sentiment_df), unsafe_allow_html=True)
 
-        # Chart (transparent + multi-color)
         fig_sent = px.bar(
             sentiment_df,
             x="Cảm xúc",
@@ -232,16 +238,18 @@ def render_dashboard(df: pd.DataFrame):
     if "label_topic" not in df.columns:
         st.warning("Thiếu cột label_topic trong dữ liệu.")
     else:
-        # remap label cũ -> label mới trước khi thống kê
-        topic_series = df["label_topic"].map(lambda x: TOPIC_REMAP_OLD_TO_NEW.get(x, x))
-        topic_counts = topic_series.value_counts().sort_index()
+        # dùng series remap đã tính ở KPI nếu có, tránh tính lại
+        if topic_series_remap is None:
+            topic_series_remap = df["label_topic"].map(lambda x: TOPIC_REMAP_OLD_TO_NEW.get(x, x))
+
+        topic_counts = topic_series_remap.value_counts().sort_index()
 
         topic_df = pd.DataFrame(
-    {
-        "Chủ đề": [TOPIC_MAP.get(int(i), str(i)) for i in topic_counts.index],
-        "Số lượng": topic_counts.values,
-    }
-)
+            {
+                "Chủ đề": [TOPIC_MAP.get(int(i), str(i)) for i in topic_counts.index],
+                "Số lượng": topic_counts.values,
+            }
+        )
 
         st.markdown(_to_dark_table(topic_df), unsafe_allow_html=True)
 
@@ -253,7 +261,6 @@ def render_dashboard(df: pd.DataFrame):
             color_discrete_sequence=COLOR_SEQ,
         )
         fig_topic.update_layout(xaxis_title="", yaxis_title="")
-        # nhãn dài thì xoay cho dễ đọc
         fig_topic.update_xaxes(tickangle=-30)
         st.plotly_chart(_style_fig(fig_topic), use_container_width=True)
 
@@ -263,11 +270,13 @@ def render_dashboard(df: pd.DataFrame):
     st.markdown('<div class="section-h">Xem nhanh dữ liệu</div>', unsafe_allow_html=True)
 
     preview = df.head(20).copy()
-    # Nếu label đang là số, map cho dễ nhìn (không phá dữ liệu gốc)
+
     if "label_sentiment" in preview.columns:
         preview["label_sentiment"] = preview["label_sentiment"].map(lambda x: SENTIMENT_MAP.get(x, x))
-    if "label_topic" in preview.columns:
-        preview["label_topic"] = preview["label_topic"].map(lambda x: TOPIC_MAP.get(TOPIC_REMAP_OLD_TO_NEW.get(x, x), x))
 
+    if "label_topic" in preview.columns:
+        preview["label_topic"] = preview["label_topic"].map(
+            lambda x: TOPIC_MAP.get(TOPIC_REMAP_OLD_TO_NEW.get(x, x), x)
+        )
 
     st.markdown(_to_dark_table(preview), unsafe_allow_html=True)
